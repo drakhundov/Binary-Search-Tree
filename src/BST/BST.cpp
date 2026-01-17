@@ -101,7 +101,7 @@ void BST::removePtrMethod(BST_node* node, int item) {
   if (cur == nullptr) {
     std::cerr << "Item not in the binary tree: " << item << std::endl;
   } else if (cur->cnt > 1) {
-    cur->cnt++;
+    cur->cnt--;
     return;
   }
   // ! It works even if both left and right
