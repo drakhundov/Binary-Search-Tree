@@ -2,6 +2,10 @@
 
 #include <iostream>
 
+// TODO: bug fix
+// TODO: removeItem methods
+// TODO: rotation methods
+
 BST::BST() : root{nullptr} {
 }
 
@@ -23,7 +27,7 @@ void BST::destroy(BST_node *node) {
 
 BST_node *BST::get_root() const { return root; }
 
-void BST::insert(int data, bool use_recur) {
+void BST::insertItem(int data, bool use_recur) {
     if (use_recur) {
         root = insertRecurMethod(root, data);
     } else {
@@ -36,28 +40,26 @@ void BST::insertPtrMethod(int data) {
         root = new BST_node{data};
         return;
     }
-    BST_node *cur, *parent;
-    bool leftChild;
-    cur = root;
+    BST_node *cur = root, *parent = nullptr;
+    bool isLeftChild = false;
     while (cur != nullptr) {
         if (data > cur->data) {
             parent = cur;
             cur = cur->right;
-            leftChild = false;
+            isLeftChild = false;
         } else if (data < cur->data) {
             parent = cur;
             cur = cur->left;
-            leftChild = true;
+            isLeftChild = true;
         } else if (data == cur->data) {
-            // ! This condition should be kept
-            // ! since cur is not nullptr.
+            // ! This condition should be kept since cur is not nullptr.
             throw std::runtime_error(
                 "[BST::insertPtrMethod] value already in the binary tree");
         }
     }
     BST_node *new_leaf = new BST_node{data};
     new_leaf->parent = parent;
-    if (leftChild) {
+    if (isLeftChild) {
         parent->left = new_leaf;
     } else {
         parent->right = new_leaf;
@@ -82,7 +84,7 @@ BST_node *BST::insertRecurMethod(BST_node *node, int data) {
     return node;
 }
 
-void BST::remove(int item, bool use_recur) {
+void BST::removeItem(int item, bool use_recur) {
     if (use_recur) {
         root = removeRecurMethod(root, item);
     } else {
@@ -104,34 +106,38 @@ void BST::removePtrMethod(BST_node *node, int item) {
         }
     }
     if (cur == nullptr) {
-        std::cerr << "Item not in the binary tree: " << item << std::endl;
+        std::cerr << "[BST::removePtrMethod] Item not in the binary tree: " << item << std::endl;
+        return;
     }
-    // ! It works even if both left and right
-    // ! nodes are NULL.
-    BST_node *tmp;
-    if (cur->left == nullptr) {
-        tmp = cur->right;
-    } else if (cur->right == nullptr) {
-        tmp = cur->left;
+
+    if (cur->left != nullptr && cur->right != nullptr) {
+        // Need to replace this node with another one to preserve tree structure.
+        BST_node *successor = extractNode(findMin(cur->right));
+        cur->data = successor->data;
+        delete successor;
+        return;
+    }
+
+    BST_node *child = (cur->right == nullptr) ? cur->left : cur->right;
+    // Happens if both children are null.
+    if (child != nullptr) {
+        child->parent = parent;
+    }
+    if (parent == nullptr) {
+        this->root = child;
+    } else if (isLeftChild) {
+        parent->left = child;
     } else {
-        tmp = findMin(cur->right);
-        cur->data = tmp->data;
-        removePtrMethod(cur->right, tmp->data);
+        parent->right = child;
     }
     delete cur;
-    if (isLeftChild) {
-        parent->left = tmp;
-    } else {
-        parent->right = tmp;
-    }
-    // ! If the item is in the BST,
-    // ! it will be successfully
-    // ! removed until here.
-    return;
 }
 
 BST_node *BST::removeRecurMethod(BST_node *node, int data) {
     if (node == nullptr) {
+        if (node == root) {
+            throw std::runtime_error("[BST::removeRecurMethod] Can't removeItem: tree is empty");
+        }
         return node;
     }
     if (data > node->data) {
@@ -148,26 +154,26 @@ BST_node *BST::removeRecurMethod(BST_node *node, int data) {
             delete tmp;
         } else {
             // Both not NULL.
-            tmp = findMin(node->right);
+            tmp = extractNode(findMin(node->right));
             node->data = tmp->data;
-            node->right = removeRecurMethod(node->right, tmp->data);
+            delete tmp;
         }
     }
     return node;
 }
 
-BST_node *BST::find(int item, BST_node *node) const {
+BST_node *BST::findItem(int item, BST_node *node) const {
     if (node == nullptr) {
         // Default value.
         node = root;
     }
     if (item > node->data) {
-        return find(item, node->right);
-    } else if (item < node->data) {
-        return find(item, node->left);
-    } else {
-        return node;
+        return findItem(item, node->right);
     }
+    if (item < node->data) {
+        return findItem(item, node->left);
+    }
+    return node;
 }
 
 void BST::inorderTrav(std::vector<BST_node *> &trav, BST_node *node) const {
@@ -200,7 +206,7 @@ void BST::postorderTrav(std::vector<BST_node *> &trav, BST_node *node) const {
     trav.push_back(node);
 }
 
-BST_node *BST::findMin(BST_node *node) const {
+BST_node *BST::findMin(BST_node *node) {
     if (node == nullptr) {
         return nullptr;
     }
@@ -210,7 +216,7 @@ BST_node *BST::findMin(BST_node *node) const {
     return findMin(node->left);
 }
 
-BST_node *BST::findMax(BST_node *node) const {
+BST_node *BST::findMax(BST_node *node) {
     if (node == nullptr) {
         return nullptr;
     }
@@ -218,6 +224,41 @@ BST_node *BST::findMax(BST_node *node) const {
         return node;
     }
     return findMax(node->right);
+}
+
+BST_node *BST::extractNode(BST_node *node) {
+    if (node == nullptr) {
+        std::cerr << "[BST::extractNode] Canot extract null pointer" << std::endl;
+        return nullptr;
+    }
+    if (node->left != nullptr && node->right != nullptr) {
+        BST_node *successor = findMin(node->right);
+        if (successor == nullptr) {
+            successor = findMax(node->left);
+        }
+        if (successor == nullptr) {
+            std::cerr << "[BST::extractNode] Failed to find a successor node" << std::endl;
+            return nullptr;
+        }
+        node->data = successor->data;
+        extractNode(successor);
+        return node;
+    }
+    BST_node *p = node->parent,
+            *tail = (node->right == nullptr) ? node->left : node->right;
+    if (tail != nullptr) {
+        tail->parent = p;
+    }
+    if (p == nullptr) {
+        // Extracting the root.
+        root = tail;
+    } else if (node == p->left) {
+        p->left = tail;
+    } else {
+        p->right = tail;
+    }
+    node->parent = node->right = node->left = nullptr;
+    return node;
 }
 
 int BST::height(BST_node *node) const {
@@ -230,7 +271,7 @@ int BST::height(BST_node *node) const {
 void BST::rotateLeft(BST_node *x) {
     BST_node *y = x->right, *p = x->parent;
     if (y == nullptr) {
-        std::invalid_argument("[BST::rotateLeft] cannot rotate left: right child is null");
+        throw std::invalid_argument("[BST::rotateLeft] cannot rotate left: right child is null");
     }
     x->right = y->left;
     if (y->left) y->left->parent = x;
@@ -252,7 +293,7 @@ void BST::rotateLeft(BST_node *x) {
 void BST::rotateRight(BST_node *x) {
     BST_node *y = x->left, *p = x->parent;
     if (y == nullptr) {
-        std::invalid_argument("[BST::rotateRight] cannot rotate right: left child is null");
+        throw std::invalid_argument("[BST::rotateRight] cannot rotate right: left child is null");
     }
     x->left = y->right;
     if (y->right) y->right->parent = x;

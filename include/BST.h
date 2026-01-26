@@ -18,11 +18,11 @@ public:
 
     BST_node *get_root() const;
 
-    void insert(int data, bool use_recur = false);
+    void insertItem(int data, bool use_recur = false);
 
-    void remove(int item, bool use_recur = false);
+    void removeItem(int item, bool use_recur = false);
 
-    BST_node *find(int item, BST_node *node = nullptr) const;
+    BST_node *findItem(int item, BST_node *node = nullptr) const;
 
     void inorderTrav(std::vector<BST_node *> &trav, BST_node *node) const;
 
@@ -34,9 +34,11 @@ public:
 
     void rotateRight(BST_node *x);
 
-    BST_node *findMin(BST_node *node) const;
+    BST_node *findMin(BST_node *node);
 
-    BST_node *findMax(BST_node *node) const;
+    BST_node *findMax(BST_node *node);
+
+    BST_node *extractNode(BST_node *node);
 
     int height(BST_node *node) const;
 
