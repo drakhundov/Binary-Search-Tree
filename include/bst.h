@@ -22,7 +22,10 @@ public:
 
     void removeItem(int item, bool use_recur = false);
 
-    BST_node *findItem(int item, BST_node *node = nullptr) const;
+    BST_node *findItem(int item) const;
+    
+    // Internal use or specific start node.
+    BST_node *findItem(int item, BST_node *node) const;
 
     void inorderTrav(std::vector<BST_node *> &trav, BST_node *node) const;
 
@@ -38,8 +41,6 @@ public:
 
     BST_node *findMax(BST_node *node);
 
-    BST_node *extractNode(BST_node *node);
-
     int height(BST_node *node) const;
 
 private:
@@ -54,6 +55,8 @@ private:
     void removePtrMethod(BST_node *node, int item);
 
     BST_node *removeRecurMethod(BST_node *node, int item);
+
+    BST_node *extractNodeWithNullChild(BST_node *node);
 };
 
 #endif

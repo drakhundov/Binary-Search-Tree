@@ -1,10 +1,8 @@
-#include "BST.h"
+#include "bst.h"
 
 #include <iostream>
 
-// TODO: bug fix
-// TODO: removeItem methods
-// TODO: rotation methods
+BST_node::BST_node(int data) : data{data}, left{nullptr}, right{nullptr}, parent{nullptr} {}
 
 BST::BST() : root{nullptr} {
 }
@@ -112,8 +110,8 @@ void BST::removePtrMethod(BST_node *node, int item) {
 
     if (cur->left != nullptr && cur->right != nullptr) {
         // Need to replace this node with another one to preserve tree structure.
-        BST_node *successor = extractNode(findMin(cur->right));
-        cur->data = successor->data;
+        BST_node *successor = extractNodeWithNullChild(findMin(cur->right));
+        std::swap(cur->data, successor->data);
         delete successor;
         return;
     }
@@ -142,30 +140,48 @@ BST_node *BST::removeRecurMethod(BST_node *node, int data) {
     }
     if (data > node->data) {
         node->right = removeRecurMethod(node->right, data);
+        if (node->right) {
+            node->right->parent = node;
+        }
     } else if (data < node->data) {
         node->left = removeRecurMethod(node->left, data);
+        if (node->left) {
+            node->left->parent = node;
+        }
     } else {
         BST_node *tmp = node;
         if (node->left == nullptr) {
             node = node->right;
+            if (node) {
+                node->parent = nullptr;
+            }
             delete tmp;
+            return node;
         } else if (node->right == nullptr) {
             node = node->left;
+            if (node) {
+                node->parent = nullptr;
+            }
             delete tmp;
+            return node;
         } else {
             // Both not NULL.
-            tmp = extractNode(findMin(node->right));
-            node->data = tmp->data;
+            tmp = extractNodeWithNullChild(findMin(node->right));
+            std::swap(node->data, tmp->data);
             delete tmp;
+            return node;
         }
     }
     return node;
 }
 
+BST_node *BST::findItem(int item) const {
+    return findItem(item, root);
+}
+
 BST_node *BST::findItem(int item, BST_node *node) const {
     if (node == nullptr) {
-        // Default value.
-        node = root;
+        return nullptr;
     }
     if (item > node->data) {
         return findItem(item, node->right);
@@ -226,23 +242,13 @@ BST_node *BST::findMax(BST_node *node) {
     return findMax(node->right);
 }
 
-BST_node *BST::extractNode(BST_node *node) {
+BST_node *BST::extractNodeWithNullChild(BST_node *node) {
     if (node == nullptr) {
-        std::cerr << "[BST::extractNode] Canot extract null pointer" << std::endl;
+        std::cerr << "[BST::extractNodeWithNullChild] cannot extract null pointer" << std::endl;
         return nullptr;
     }
     if (node->left != nullptr && node->right != nullptr) {
-        BST_node *successor = findMin(node->right);
-        if (successor == nullptr) {
-            successor = findMax(node->left);
-        }
-        if (successor == nullptr) {
-            std::cerr << "[BST::extractNode] Failed to find a successor node" << std::endl;
-            return nullptr;
-        }
-        node->data = successor->data;
-        extractNode(successor);
-        return node;
+        throw std::runtime_error("[BST::extractNodeWithNullChild] cannot extract: node has two non-null children");
     }
     BST_node *p = node->parent,
             *tail = (node->right == nullptr) ? node->left : node->right;
@@ -277,14 +283,11 @@ void BST::rotateLeft(BST_node *x) {
     if (y->left) y->left->parent = x;
     y->left = x;
     x->parent = y;
-    if (root == x) {
+    if (p == nullptr) {
         this->root = y;
-        return;
-    }
-    if (x == p->left) {
+    } else if (x == p->left) {
         p->left = y;
     } else {
-        // x == p->right
         p->right = y;
     }
     y->parent = p;
@@ -299,14 +302,11 @@ void BST::rotateRight(BST_node *x) {
     if (y->right) y->right->parent = x;
     y->right = x;
     x->parent = y;
-    if (root == x) {
+    if (p == nullptr) {
         this->root = y;
-        return;
-    }
-    if (x == p->left) {
+    } else if (x == p->left) {
         p->left = y;
     } else {
-        // x == p->right
         p->right = y;
     }
     y->parent = p;
